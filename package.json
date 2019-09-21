@@ -1,12 +1,12 @@
 {
-  "name": "picgo-plugin-web-uploader",
-  "version": "1.1.0",
-  "description": "自定义Web图床",
+  "name": "picgo-plugin-gitlab",
+  "version": "1.0.0",
+  "description": "picgo uploader for gitlab",
   "main": "src/index.js",
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "",
+  "homepage": "https://github.com/bugwz/picgo-plugin-gitlab",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "patch": "npm version patch && git push origin master && git push origin --tags",
@@ -18,7 +18,7 @@
     "picgo-gui-plugin",
     "picgo-plugin"
   ],
-  "author": "ZQian",
+  "author": "bugwz",
   "license": "MIT",
   "devDependencies": {
     "eslint": "^5.0.1",

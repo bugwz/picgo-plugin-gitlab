@@ -1,25 +1,29 @@
+// fork from : https://github.com/yuki-xin/picgo-plugin-web-uploader
+
 // const logger = require('@varnxy/logger')
-// logger.setDirectory('/Users/zhang/Work/WorkSpaces/WebWorkSpace/picgo-plugin-web-uploader/logs')
+// logger.setDirectory('/Users/zhang/Work/WorkSpaces/WebWorkSpace/picgo-plugin-gitlab/logs')
 // let log = logger('plugin')
 
 module.exports = (ctx) => {
   const register = () => {
-    ctx.helper.uploader.register('web-uploader', {
+    ctx.helper.uploader.register('gitlab', {
       handle,
-      name: '自定义Web图床',
+      name: 'GitLab图床',
       config: config
     })
   }
   const handle = async function (ctx) {
-    let userConfig = ctx.getConfig('picBed.web-uploader')
+    let userConfig = ctx.getConfig('picBed.gitlab')
     if (!userConfig) {
       throw new Error('Can\'t find uploader config')
     }
-    const url = userConfig.url
-    const paramName = userConfig.paramName
-    const jsonPath = userConfig.jsonPath
-    const customHeader = userConfig.customHeader
-    const customBody = userConfig.customBody
+    const url = userConfig.URL
+    const group = userConfig.Group
+    const project = userConfig.Project
+    const token = userConfig.Token
+    const realImgUrlPre = url + '/' + group + '/' + project
+    const realUrl = url + '/api/v4/projects/' + group + '%2F' + project + '/uploads'
+
     try {
       let imgList = ctx.output
       for (let i in imgList) {
@@ -27,28 +31,13 @@ module.exports = (ctx) => {
         if (!image && imgList[i].base64Image) {
           image = Buffer.from(imgList[i].base64Image, 'base64')
         }
-        const postConfig = postOptions(image, customHeader, customBody, url, paramName, imgList[i].fileName)
-        let body = await ctx.Request.request(postConfig)
 
+        const postConfig = postOptions(realUrl, token, image, imgList[i].fileName)
+        let body = await ctx.Request.request(postConfig)
         delete imgList[i].base64Image
         delete imgList[i].buffer
-        if (!jsonPath) {
-          imgList[i]['imgUrl'] = body
-        } else {
-          body = JSON.parse(body)
-          let imgUrl = body
-          for (let field of jsonPath.split('.')) {
-            imgUrl = imgUrl[field]
-          }
-          if (imgUrl) {
-            imgList[i]['imgUrl'] = imgUrl
-          } else {
-            ctx.emit('notification', {
-              title: '返回解析失败',
-              body: '请检查JsonPath设置'
-            })
-          }
-        }
+        body = JSON.parse(body)
+        imgList[i]['imgUrl'] = realImgUrlPre + body['url']
       }
     } catch (err) {
       ctx.emit('notification', {
@@ -58,17 +47,19 @@ module.exports = (ctx) => {
     }
   }
 
-  const postOptions = (image, customHeader, customBody, url, paramName, fileName) => {
+  const postOptions = (url, token, image, fileName) => {
     let headers = {
       contentType: 'multipart/form-data',
-      'User-Agent': 'PicGo'
+      'User-Agent': 'PicGo',
+      'PRIVATE-TOKEN': token
     }
-    if (customHeader) {
-      headers = Object.assign(headers, JSON.parse(customHeader))
-    }
-    let formData = {}
-    if (customBody) {
-      formData = Object.assign(formData, JSON.parse(customBody))
+    let formData = {
+      'file': {
+        'value': image,
+        'options': {
+          'filename': fileName
+        }
+      }
     }
     const opts = {
       method: 'POST',
@@ -76,65 +67,52 @@ module.exports = (ctx) => {
       headers: headers,
       formData: formData
     }
-    opts.formData[paramName] = {}
-    opts.formData[paramName].value = image
-    opts.formData[paramName].options = {
-      filename: fileName
-    }
     return opts
   }
 
   const config = ctx => {
-    let userConfig = ctx.getConfig('picBed.web-uploader')
+    let userConfig = ctx.getConfig('picBed.gitlab')
     if (!userConfig) {
       userConfig = {}
     }
     return [
       {
-        name: 'url',
+        name: 'URL',
         type: 'input',
-        default: userConfig.url,
+        default: userConfig.URL,
         required: true,
-        message: 'API地址',
-        alias: 'API地址'
+        message: 'https://gitlab.com',
+        alias: 'URL'
       },
       {
-        name: 'paramName',
+        name: 'Group',
         type: 'input',
-        default: userConfig.paramName,
+        default: userConfig.Group,
         required: true,
-        message: 'POST参数名',
-        alias: 'POST参数名'
+        message: 'Group',
+        alias: 'Group'
       },
       {
-        name: 'jsonPath',
+        name: 'Project',
         type: 'input',
-        default: userConfig.jsonPath,
-        required: false,
-        message: '图片URL JSON路径(eg: data.url)',
-        alias: 'JSON路径'
+        default: userConfig.Project,
+        required: true,
+        message: 'Project',
+        alias: 'Project'
       },
       {
-        name: 'customHeader',
+        name: 'Token',
         type: 'input',
-        default: userConfig.customHeader,
-        required: false,
-        message: '自定义请求头 标准JSON(eg: {"key":"value"})',
-        alias: '自定义请求头'
-      },
-      {
-        name: 'customBody',
-        type: 'input',
-        default: userConfig.customBody,
-        required: false,
-        message: '自定义Body 标准JSON(eg: {"key":"value"})',
-        alias: '自定义Body'
+        default: userConfig.Token,
+        required: true,
+        message: 'aLS32eaxs1GLvKcv9f-k',
+        alias: 'Token'
       }
     ]
   }
   return {
-    uploader: 'web-uploader',
-    // transformer: 'web-uploader',
+    uploader: 'gitlab',
+    // transformer: 'gitlab',
     // config: config,
     register
 
