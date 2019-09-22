@@ -5,7 +5,7 @@ PicGo Uploader For GitLab
 ### Install
 
 ```bash
-npm i picgo-plugin-github-plus
+npm i picgo-plugin-gitlab
 ```
 
 ### Usage
